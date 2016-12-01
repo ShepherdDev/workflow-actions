@@ -35,39 +35,20 @@ component is then used to execute another activity in the workflow.
 * Source - The `Attribute` that has the string.
 * Seperator - The string to use when splitting the Source string
 (usually a comma).
-* Execute Each - The `Activity` to activate for each iteration.
-* Execute After - The `Activity` to activate at the end of all
-the iterations have executed.
+* Activity - The `Activity` to activate for each iteration.
 * Index Key - The key name of the `Attribute` that holds the
 current index in the loop in the spawned Activity. (optional)
 * Value Key - The key name of the `Attribute` that the element
 will be placed into in the spawned Activity. (optional)
-
-Order matters. Concurrent activities are executed in order from top
-to bottom. A currently executing activity will finish execution
-before another activity begins execution. This means if you want
-the loop to execute activity `B` for the loop iterations and then
-execute activity `C` at the end of the loop, make sure `C` comes
-after `B` in the activity order; otherwise you will find your "end
-of loop" activity executing before the others finish.
-
-> Note: While your activities will *probably* be executed in
-> iteration order, you should not depend on it. For example, if
-> you are using this to build a list of names, do not assume that
-> just because `Index` == 0 that this will be the first name.
-> Check the target attribute to see if it is empty instead.
-
-> Note: Any actions that follow this action in the same Activity
-> will be executed before your looped Activities run. For this
-> reason you need to use the `Execute After` activity for any
-> logic you want to run at the end of the loop.
+* Wait For Completion - Pauses execution of this activity until
+all the spawned activities have completed.
 
 ##### Example Usage
 
 When the Action fires it split the `Source` attribute by the
 contents of the `Seperator` attribute into a temporary array. For
 each component of this array it will execute the Activity defined
-by the `Execute Each` attribute. If the activity has an
+by the `Activity` attribute. If the activity has an
 attributed that matches the value of the `Index Key` attribute
 then its value will be set to the integer number of the index of
 the element in the array. If the activity has an attribute that
@@ -76,75 +57,55 @@ will be set to string value of the component from the array.
 
 Here is a simple example of a workflow with two Activities:
 
-* `Setup`
-  * Loop Over String
-* `Process`
-  * Attribute Set to Group Leader
-  * Assign Activity from Attribute Value
-  * Email Send
-
-This will send an e-mail to the leader of the small group identified
-by the GUID component of the `Source` during each iteration of
-the loop.
-
-Because Workflows execute a single activity and action at a time
-some more complex usages take a little more creativity. You cannot,
-for example, have the `Process` activity send a User Entry Form
-action request to each group leader and expect them to all receive
-an e-mail at the same time. The first group leader will receive an
-e-mail and once they have filled out the form and submitted it
-then execution of the next `Process` iteration begins.
-
-Basically, even though the term `Active` is used it is better to
-think of it as:
-* Many activities can be pending (active), but only one is
-being executed at at time and that activity must complete before
-executing the next pending (active) activity. Only one activity is
-truly *active* **and executing** at a time.
-
-In short, a single workflow is a synchronous execution context.
-
->Note: Using this action in a workflow that is automatically
->persisted should be avoided if possible. If you have a string
->with 100 elements in it you will be spinning up 100 activities
->in this workflow. If it is persisted to the database then that
->means all 100 activities are also persisted to the database.
->
->Be nice to your server and don't persist looping workflows unless
->you absolutely must.
-
-##### Asynchronous Usage
-
-A more complex usage can be accomplished with multiple workflows.
-For example, lets take the above example of needing to send a
-User Entry Form to each small group leader and convert it into
-something that will truly run asynchronously.
-
 * Workflow `Main`
   * `Setup`
-    * Loop Over String
+    * Loop Over String; `Activity` = `Process`
   * `Process`
-    * Activate Workflow `Send Leader Email`
-* Workflow `Send Leader Email`
-  * `Main`
     * Attribute Set to Group Leader
     * Assign Activity from Attribute Value
     * User Entry Form
+    * Set Group Attribute
 
-The above usage example performs a synchronous loop. All the
-actions will be completed for each iteration before the next
-iteration begins. However, because we are spinning off a new
-workflow, each of those workflows will begin to process as well
-and they will all run concurrently. This then becomes an
-asynchronous task and the `Main` workflow completes after
-initiation all of the required `Send Leader Email` workflows.
+This will dice the string up into group GUIDs and then spin up
+a workflow activity of `Process` for each group. We then load
+the group leader from that group, assign the activity to them and
+send them an e-mail asking them to fill out a form. Once they
+complete the form the value is stored as an attribute in the
+group.
 
-You may notice, that in this case the `Main` workflow has no
-knowledge of then all the `Send Leader Email` workflows have
-finished. Therefore making use of the `Execute After` setting
-does not make much sense. You can still use it but it will almost
-definately be executed before the child workflows have finished.
+>Note: Because this is spawning new activities for each loop
+>instance; please be mindful of when you use it with the `Wait For
+>Completion` setting set to true. This will cause the workflow to
+>persist which means all those spawned activities get saved forever
+>in your database. Be mindful anytime you use the `Wait` setting or
+>any other actions that cause the workflow to persist, such as the
+>`User Entry Form`.
 
+#### Wait For Completion
+
+Some information about the `Wait For Completion` setting. The
+way this works is by returning a value that tells the workflow that
+this action did not fully complete. Other activities in the
+workflow will continue but this activity will be suspended until
+the entire workflow is next queued to be run. By default this is
+every 10 minutes. What this means is that if you have a workflow
+with a loop that is set to `Wait For Completion` then there will
+be a delay before it finishes, even if it isn't actually waiting
+for anything.
+
+This is because the first time the workflow is it will spawn all
+the iteration activities and then the main activity will pause.
+During this first run all the spawned activities *may* finish. At
+a best case scenario they do finish. Then on the second run of
+the workflow it will be able to complete the initial `loop` action
+and continue executing that activity which would complete the
+workflow. In a standard install of workflows being executed every
+10 minutes, this means your workflow may take up to 10 minutes
+before it has completed.
+
+Generally this is not a problem, but if you are expecting an
+immediate result back from the workflow you may run into issues.
+executed
 ## Activate Activity With Attributes
 
 This provides the same functionality as the normal `Activate
