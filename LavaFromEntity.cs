@@ -21,13 +21,13 @@ namespace com.shepherdchurch.WorkflowActions
     [ActionCategory( "Utility" )]
     [Description( "Loads an entity object then passes it through Lava and sets an attribute's value to the result." )]
     [Export( typeof( ActionComponent ) )]
-    [ExportMetadata( "ComponentName", "Lava From Entity" )]
+    [ExportMetadata( "ComponentName", "Lava From Generic Entity" )]
 
     [EntityTypeField( "Entity Type", "The type of entity to use when loading from the guid.", true, "", 0 )]
     [WorkflowAttribute( "Entity Attribute", "The attribute that contains the GUID value to load the Entity from.", true, "", "", 1 )]
     [WorkflowAttribute( "Attribute", "The attribute to store the result in.", true, "", "", 2 )]
     [CodeEditorField( "Lava", "The <span class='tip tip-lava'></span> to run. The entity object will be available as 'Entity'.", CodeEditorMode.Lava, CodeEditorTheme.Rock, 300, true, "", "", 3, "Value" )]
-    public class LavaFromEntity : ActionComponent
+    public class LavaFromGenericEntity : ActionComponent
     {
         /// <summary>
         /// Executes the specified workflow.
@@ -115,7 +115,8 @@ namespace com.shepherdchurch.WorkflowActions
         /// <returns>An instance of entityType or null if not found.</returns>
         object GetEntityFromTypeByGuid( Type entityType, Guid guid )
         {
-            IService service = GetServiceFromEntityType( entityType );
+            System.Data.Entity.DbContext context = Rock.Reflection.GetDbContextForEntityType( entityType );
+            IService service = Rock.Reflection.GetServiceForEntityType( entityType, context );
 
             if ( service != null )
             {
@@ -135,89 +136,6 @@ namespace com.shepherdchurch.WorkflowActions
             }
 
             return null;
-        }
-
-        /// <summary>
-        /// Find and return an IService subclass for the given Entity Type. This would be equivalent to returning
-        /// a PersonService instance when passed a Person entity type.
-        /// </summary>
-        /// <param name="entityType">The IEntity type that we need an IService object for.</param>
-        /// <returns>Instance of an IService subclass or null if not found.</returns>
-        protected IService GetServiceFromEntityType( Type entityType )
-        {
-            //
-            // Check all assemblies that are non-dynamic (they throw exceptions) that do not
-            // begin with 'System.' or 'Microsoft.' as those will never contain IServce
-            // class types.
-            //
-            foreach ( var assembly in AppDomain.CurrentDomain.GetAssemblies().Where( a => !a.IsDynamic && !a.FullName.StartsWith("System.") && !a.FullName.StartsWith("Microsoft.") ) )
-            {
-                var types = assembly.GetExportedTypes().Where( t => typeof( IService ).IsAssignableFrom( t ) );
-
-                //
-                // Loop through each public type that inherits from IService.
-                //
-                foreach ( var type in types )
-                {
-                    //
-                    // Check if this type is a generic of the entityType we are concerned with.
-                    //
-                    if (IsTypeGenericOf(type, entityType))
-                    {
-                        //
-                        // Find a constructor that takes a single DbContext subclass argument.
-                        //
-                        foreach ( var mi in type.GetConstructors() )
-                        {
-                            var parameters = mi.GetParameters();
-                            if ( parameters.Length == 1 && typeof( DbContext ).IsAssignableFrom( parameters[0].ParameterType ) )
-                            {
-                                //
-                                // Create an instance of the specific subclass using the default constructor and then
-                                // try to create an instance of the IService type.
-                                //
-                                DbContext context = (DbContext)Activator.CreateInstance( parameters[0].ParameterType, null );
-
-                                return ( IService )Activator.CreateInstance( type, new object[] { context } );
-                            }
-                        }
-
-                        return null;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Check if the type is a generic of the target type. For example, type&lt;targetType&gt;.
-        /// </summary>
-        /// <param name="type">The generic type to be checked.</param>
-        /// <param name="targetType">The type that is being wrapped by the generic type.</param>
-        /// <returns>true if type is a generic of the target type otherwise false.</returns>
-        bool IsTypeGenericOf( Type type, Type targetType )
-        {
-            if ( type.IsGenericType )
-            {
-                foreach ( Type arg in type.GetGenericArguments() )
-                {
-                    if ( arg == targetType )
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            //
-            // Recursively check the base type to see if it meets the criteria.
-            //
-            if ( type.BaseType != null )
-            {
-                return IsTypeGenericOf( type.BaseType, targetType );
-            }
-
-            return false;
         }
     }
 }
