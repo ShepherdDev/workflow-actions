@@ -18,12 +18,12 @@ namespace com.shepherdchurch.WorkflowActions
     /// <summary>
     /// Runs Lava and sets an attribute's value to the result.
     /// </summary>
-    [ActionCategory( "Utility" )]
+    [ActionCategory( "Shepherd Church" )]
     [Description( "Loads an entity object then passes it through Lava and sets an attribute's value to the result." )]
     [Export( typeof( ActionComponent ) )]
     [ExportMetadata( "ComponentName", "Lava From Generic Entity" )]
 
-    [EntityTypeField( "Entity Type", "The type of entity to use when loading from the guid.", true, "", 0 )]
+    [EntityTypeField( "Entity Type", "The type of entity to use when loading from the guid. Tip: A Person attribute stores it's value as a Person Alias.", true, "", 0 )]
     [WorkflowAttribute( "Entity Attribute", "The attribute that contains the GUID value to load the Entity from.", true, "", "", 1 )]
     [WorkflowAttribute( "Attribute", "The attribute to store the result in.", true, "", "", 2 )]
     [CodeEditorField( "Lava", "The <span class='tip tip-lava'></span> to run. The entity object will be available as 'Entity'.", CodeEditorMode.Lava, CodeEditorTheme.Rock, 300, true, "", "", 3, "Value" )]
@@ -90,16 +90,7 @@ namespace com.shepherdchurch.WorkflowActions
                         //
                         // Store the result into the attribute.
                         //
-                        if ( attribute.EntityTypeId == new Workflow().TypeId )
-                        {
-                            action.Activity.Workflow.SetAttributeValue( attribute.Key, value );
-                            action.AddLogEntry( string.Format( "Set '{0}' attribute to '{1}'.", attribute.Name, value ) );
-                        }
-                        else if ( attribute.EntityTypeId == new WorkflowActivity().TypeId )
-                        {
-                            action.Activity.SetAttributeValue( attribute.Key, value );
-                            action.AddLogEntry( string.Format( "Set '{0}' attribute to '{1}'.", attribute.Name, value ) );
-                        }
+                        SetWorkflowAttributeValue( action, attributeGuid, value );
                     }
                 }
             }
