@@ -21,7 +21,8 @@ namespace com.shepherdchurch.WorkflowActions
     [Export( typeof( ActionComponent ) )]
     [ExportMetadata( "ComponentName", "Set Attribute To Round Robin Group Member" )]
 
-    [WorkflowAttribute( "Group", "Workflow Attribute that contains the group for selecting a person from.", true, order: 0, fieldTypeClassNames: new string[] { "Rock.Field.Types.GroupFieldType" } )]
+    [GroupField( "Group", "Specific group for selecting a person from.", false, "", order: 0, key: "GroupExplicit" )]
+    [WorkflowAttribute( "Group Attribute", "Workflow Attribute that contains the group for selecting a person from.", false, order: 0, key: "Group", fieldTypeClassNames: new string[] { "Rock.Field.Types.GroupFieldType" } )]
 
     [EnumsField( "Group Member Status", "Group member must be one of these status to match.", typeof( GroupMemberStatus ), true, "1,2", order: 1 )]
 
@@ -49,19 +50,23 @@ namespace com.shepherdchurch.WorkflowActions
             //
             // Get the selected group from the configuration options.
             //
-            var guidGroupAttribute = GetAttributeValue( action, "Group" ).AsGuidOrNull();
-            if ( guidGroupAttribute.HasValue )
+            var groupGuid = GetAttributeValue( action, "GroupExplicit" ).AsGuidOrNull();
+            if ( !groupGuid.HasValue )
             {
-                var attributeGroup = AttributeCache.Read( guidGroupAttribute.Value, rockContext );
-                if ( attributeGroup != null )
+                var guidGroupAttribute = GetAttributeValue( action, "Group" ).AsGuidOrNull();
+                if ( guidGroupAttribute.HasValue )
                 {
-                    var groupGuid = action.GetWorklowAttributeValue( guidGroupAttribute.Value ).AsGuidOrNull();
-
-                    if ( groupGuid.HasValue )
+                    var attributeGroup = AttributeCache.Read( guidGroupAttribute.Value, rockContext );
+                    if ( attributeGroup != null )
                     {
-                        group = new GroupService( rockContext ).Get( groupGuid.Value );
+                        groupGuid = action.GetWorklowAttributeValue( guidGroupAttribute.Value ).AsGuidOrNull();
                     }
                 }
+            }
+
+            if ( groupGuid.HasValue )
+            {
+                group = new GroupService( rockContext ).Get( groupGuid.Value );
             }
 
             if ( group == null )
