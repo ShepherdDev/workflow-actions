@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.ComponentModel.Composition;
-using System.Linq;
-using System.Reflection;
-
-using Rock;
+﻿using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 using Rock.Workflow;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.Composition;
+using System.Reflection;
 
 namespace com.shepherdchurch.WorkflowActions
 {
@@ -52,8 +50,8 @@ namespace com.shepherdchurch.WorkflowActions
                 //
                 // Now get the actual Attribute objects so we know what keys to use.
                 //
-                var attribute = AttributeCache.Read( attributeGuid, rockContext );
-                var entityAttribute = AttributeCache.Read( entityAttributeGuid, rockContext );
+                var attribute = AttributeCache.Get( attributeGuid, rockContext );
+                var entityAttribute = AttributeCache.Get( entityAttributeGuid, rockContext );
                 if ( attribute != null && entityAttribute != null )
                 {
                     Guid entityGuid = Guid.Empty;
@@ -73,7 +71,7 @@ namespace com.shepherdchurch.WorkflowActions
                     //
                     // Find the Entity Type that we have been configured to use.
                     //
-                    var entityTypeCache = EntityTypeCache.Read( GetAttributeValue( action, "EntityType" ).AsGuid() );
+                    var entityTypeCache = EntityTypeCache.Get( GetAttributeValue( action, "EntityType" ).AsGuid() );
                     if ( entityTypeCache != null )
                     {
                         string value = GetAttributeValue( action, "Value" );

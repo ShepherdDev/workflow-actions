@@ -45,8 +45,7 @@ namespace Rock.Workflow.Action
 
             var workflow = action.Activity.Workflow;
 
-            var activityType = new WorkflowActivityTypeService( rockContext ).Queryable()
-                .Where( a => a.Guid.Equals( guid ) ).FirstOrDefault();
+            var activityType = WorkflowActivityTypeCache.Get( guid );
             if ( activityType == null )
             {
                 action.AddLogEntry( "Invalid Activity Property", true );

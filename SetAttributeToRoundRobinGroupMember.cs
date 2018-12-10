@@ -31,7 +31,7 @@ namespace com.shepherdchurch.WorkflowActions
     [WorkflowAttribute( "Attribute", "The attribute to set with the Person picked from the group.", true, order: 3, fieldTypeClassNames: new string[] { "Rock.Field.Types.PersonFieldType", "Rock.Field.Types.TextFieldType" } )]
     public class SetAttributeToRoundRobinGroupMember : ActionComponent
     {
-        private object _lockObject = new Object();
+        private readonly object _lockObject = new Object();
 
         /// <summary>
         /// Executes the specified workflow.
@@ -56,7 +56,7 @@ namespace com.shepherdchurch.WorkflowActions
                 var guidGroupAttribute = GetAttributeValue( action, "Group" ).AsGuidOrNull();
                 if ( guidGroupAttribute.HasValue )
                 {
-                    var attributeGroup = AttributeCache.Read( guidGroupAttribute.Value, rockContext );
+                    var attributeGroup = AttributeCache.Get( guidGroupAttribute.Value, rockContext );
                     if ( attributeGroup != null )
                     {
                         groupGuid = action.GetWorklowAttributeValue( guidGroupAttribute.Value ).AsGuidOrNull();
@@ -97,10 +97,10 @@ namespace com.shepherdchurch.WorkflowActions
                 Guid selectAttributeGuid = GetAttributeValue( action, "Attribute" ).AsGuid();
                 if ( !selectAttributeGuid.IsEmpty() )
                 {
-                    var selectedPersonAttribute = AttributeCache.Read( selectAttributeGuid, rockContext );
+                    var selectedPersonAttribute = AttributeCache.Get( selectAttributeGuid, rockContext );
                     if ( selectedPersonAttribute != null )
                     {
-                        if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Read( Rock.SystemGuid.FieldType.TEXT.AsGuid(), rockContext ).Id )
+                        if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Get( Rock.SystemGuid.FieldType.TEXT.AsGuid(), rockContext ).Id )
                         {
                             SetWorkflowAttributeValue( action, selectAttributeGuid, person.FullName );
                         }
@@ -149,23 +149,27 @@ namespace com.shepherdchurch.WorkflowActions
                 //
                 if ( !action.Activity.Workflow.WorkflowType.Attributes.ContainsKey( attrKey ) )
                 {
-                    var attribute = new Rock.Model.Attribute();
-                    attribute.EntityTypeId = action.Activity.Workflow.WorkflowType.TypeId;
-                    attribute.Name = string.Format( "Last Round Robin Person ({0})", action.ActionType.Name );
-                    attribute.Key = attrKey;
-                    attribute.FieldTypeId = FieldTypeCache.Read( Rock.SystemGuid.FieldType.TEXT.AsGuid() ).Id;
+                    var attribute = new Rock.Model.Attribute
+                    {
+                        EntityTypeId = action.Activity.Workflow.WorkflowType.TypeId,
+                        Name = string.Format( "Last Round Robin Person ({0})", action.ActionType.Name ),
+                        Key = attrKey,
+                        FieldTypeId = FieldTypeCache.Get( Rock.SystemGuid.FieldType.TEXT.AsGuid() ).Id
+                    };
 
                     using ( var newRockContext = new RockContext() )
                     {
                         new AttributeService( newRockContext ).Add( attribute );
                         newRockContext.SaveChanges();
-                        AttributeCache.FlushEntityAttributes();
+                        AttributeCache.RemoveEntityAttributes();
                     }
 
-                    action.Activity.Workflow.WorkflowType.Attributes.Add( attrKey, AttributeCache.Read( attribute ) );
-                    var attributeValue = new AttributeValueCache();
-                    attributeValue.AttributeId = attribute.Id;
-                    attributeValue.Value = string.Empty;
+                    action.Activity.Workflow.WorkflowType.Attributes.Add( attrKey, AttributeCache.Get( attribute ) );
+                    var attributeValue = new AttributeValueCache
+                    {
+                        AttributeId = attribute.Id,
+                        Value = string.Empty
+                    };
                     action.Activity.Workflow.WorkflowType.AttributeValues.Add( attrKey, attributeValue );
                 }
 

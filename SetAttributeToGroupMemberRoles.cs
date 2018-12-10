@@ -71,7 +71,7 @@ namespace com.shepherdchurch.WorkflowActions
 
             if ( guidGroupAttribute.HasValue )
             {
-                var attributeGroup = AttributeCache.Read( guidGroupAttribute.Value, rockContext );
+                var attributeGroup = AttributeCache.Get( guidGroupAttribute.Value, rockContext );
                 if ( attributeGroup != null )
                 {
                     var groupGuid = action.GetWorklowAttributeValue( guidGroupAttribute.Value ).AsGuidOrNull();
@@ -96,7 +96,7 @@ namespace com.shepherdchurch.WorkflowActions
 
             if ( guidPersonAttribute.HasValue )
             {
-                var attributePerson = AttributeCache.Read( guidPersonAttribute.Value, rockContext );
+                var attributePerson = AttributeCache.Get( guidPersonAttribute.Value, rockContext );
                 if ( attributePerson != null )
                 {
                     string attributePersonValue = action.GetWorklowAttributeValue( guidPersonAttribute.Value );
@@ -153,18 +153,18 @@ namespace com.shepherdchurch.WorkflowActions
                 Guid selectAttributeGuid = GetAttributeValue( action, "Attribute" ).AsGuid();
                 if ( !selectAttributeGuid.IsEmpty() )
                 {
-                    var selectedPersonAttribute = AttributeCache.Read( selectAttributeGuid, rockContext );
+                    var selectedPersonAttribute = AttributeCache.Get( selectAttributeGuid, rockContext );
                     if ( selectedPersonAttribute != null )
                     {
-                        if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Read( Rock.SystemGuid.FieldType.BOOLEAN.AsGuid(), rockContext ).Id )
+                        if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Get( Rock.SystemGuid.FieldType.BOOLEAN.AsGuid(), rockContext ).Id )
                         {
                             SetWorkflowAttributeValue( action, selectAttributeGuid, groupMembers.Any() ? "True" : "False" );
                         }
-                        else if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Read( Rock.SystemGuid.FieldType.INTEGER.AsGuid(), rockContext ).Id )
+                        else if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Get( Rock.SystemGuid.FieldType.INTEGER.AsGuid(), rockContext ).Id )
                         {
                             SetWorkflowAttributeValue( action, selectAttributeGuid, groupMembers.Any() ? "1" : "0" );
                         }
-                        else if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Read( Rock.SystemGuid.FieldType.TEXT.AsGuid(), rockContext ).Id )
+                        else if ( selectedPersonAttribute.FieldTypeId == FieldTypeCache.Get( Rock.SystemGuid.FieldType.TEXT.AsGuid(), rockContext ).Id )
                         {
                             if ( GetAttributeValue( action, "StoreAsId" ).AsBoolean( false ) == true )
                             {
